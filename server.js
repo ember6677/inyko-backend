@@ -11,6 +11,7 @@ const coversPlatformsRouter = require('./routes/covers-platforms');
 const publishTasksRouter = require('./routes/publish-tasks');
 const contentPlansRouter = require('./routes/content-plans');
 const logsAutomationsRouter = require('./routes/logs-automations');
+const aiRouter = require('./routes/ai');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -30,6 +31,7 @@ app.use('/api', coversPlatformsRouter);
 app.use('/api/publish-tasks', publishTasksRouter);
 app.use('/api/content-plans', contentPlansRouter);
 app.use('/api', logsAutomationsRouter);
+app.use('/api/ai', aiRouter);
 
 // 仪表盘聚合接口
 app.get('/api/dashboard', (req, res) => {

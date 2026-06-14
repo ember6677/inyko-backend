@@ -1,9 +1,11 @@
 services:
   - type: web
-    name: inyko-api
+    name: inyko-backend
     env: node
     buildCommand: npm install
     startCommand: node server.js
     envVars:
       - key: PORT
         value: 4000
+      - key: GEMINI_API_KEY
+        sync: false

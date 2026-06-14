@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 营销策划中心 · INYKO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-deep:#08090f; --bg-surface:#0f1118; --bg-card:#141620;
+      --bg-hover:#1a1d2a; --border:rgba(255,255,255,.07);
+      --border-lit:rgba(255,255,255,.12); --cyan:#00d4ff;
+      --cyan-dim:rgba(0,212,255,.15); --gold:#e8c97a;
+      --gold-dim:rgba(232,201,122,.12); --green:#00e5a0;
+      --green-dim:rgba(0,229,160,.12); --violet:#a78bfa;
+      --violet-dim:rgba(167,139,250,.12); --rose:#fb7185;
+      --rose-dim:rgba(251,113,133,.12);
+      --text-1:#f0f2ff; --text-2:#8890b0; --text-3:#4a5070;
+      --font:'Noto Sans SC',sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font); background: var(--bg-deep);
+      color: var(--text-1); min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    body::before {
+      content:''; position:fixed; inset:0;
+      background:
+        radial-gradient(ellipse 80%60% at 20%10%, rgba(0,212,255,.04) 0%, transparent 60%),
+        radial-gradient(ellipse 60%50% at 80%80%, rgba(167,139,250,.04) 0%, transparent 60%);
+      pointer-events:none; z-index:0;
+    }
+
+    /* Layout */
+    .shell { display:grid; grid-template-columns:240px 1fr; min-height:100vh; position:relative; z-index:1; }
+
+    /* Sidebar */
+    .sidebar {
+      background:var(--bg-surface); border-right:1px solid var(--border);
+      padding:24px 16px; display:flex; flex-direction:column; gap:4px;
+    }
+    .brand { display:flex; align-items:center; gap:10px; padding:8px 12px 20px; text-decoration:none; }
+    .brand-icon {
+      width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--cyan),var(--violet));
+      display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;
+    }
+    .brand-text { font-size:15px;font-weight:700;color:var(--text-1); }
+    .nav-item {
+      display:flex; align-items:center; gap:10px; padding:10px 12px;
+      border-radius:8px; cursor:pointer; transition:all .2s; color:var(--text-2); font-size:13px;text-decoration:none;
+    }
+    .nav-item:hover{ background:var(--bg-hover);color:var(--text-1); }
+    .nav-item.active{ background:var(--cyan-dim);color:var(--cyan); }
+    .nav-item.active::before{
+      content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;border-radius:2px;background:var(--cyan);
+    }
+    .nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7;}
+    .nav-item.active .nav-icon{opacity:1;}
+
+    /* Main */
+    .main { padding:32px 40px; overflow-y:auto; display:flex; flex-direction:column; gap:28px; }
+
+    .page-header h1 { font-size:26px;font-weight:700;letter-spacing:-.3px; }
+    .page-header p { font-size:14px;color:var(--text-2);margin-top:6px;line-height:1.6; }
+
+    /* Buttons */
+    .btn {
+      display:inline-flex;align-items:center;gap:7px;padding:9px 18px;
+      border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;
+      font-family:var(--font);transition:all .2s;text-decoration:none;white-space:nowrap;
+    }
+    .btn-primary{background:var(--cyan);color:#08090f; }
+    .btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,212,255,.25);}
+    .btn-secondary{background:var(--bg-card);color:var(--text-2);border:1px solid var(--border-lit); }
+    .btn-secondary:hover{background:var(--bg-hover);color:var(--text-1); }
+    .btn-sm{padding:6px 14px;font-size:12px; }
+    .btn-ghost{background:transparent;color:var(--text-2);border:1px solid var(--border); }
+    .btn-ghost:hover{border-color:var(--border-lit);color:var(--text-1); }
+    .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;filter:none!important;box-shadow:none!important;}
+
+    /* Cards */
+    .card{
+      background:var(--bg-card); border:1px solid var(--border);
+      border-radius:16px;padding:24px;transition:border-color .2s;
+    }
+    .card:hover{border-color:var(--border-lit);}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+    .card-title{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;color:var(--text-1);}
+    .card-subtitle{font-size:12px;color:var(--text-3);margin-top:3px;}
+    .card-actions{display:flex;gap:8px;align-items:center;}
+
+    /* Forms */
+    .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:16px;}
+    .form-group label{display:block;font-size:12px;color:var(--text-3);font-weight:500;margin-bottom:6px;letter-spacing:.3px;}
+    .form-group input, .form-group select, .form-group textarea{
+      width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border);
+      background:var(--bg-surface);color:var(--text-1);font-family:var(--font);font-size:13px;
+      outline:none;transition:border-color .2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus{border-color:var(--cyan);}
+    .form-group textarea{resize:vertical;min-height:70px;}
+
+    /* Topic cards */
+    .topic-list{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+    .topic-card{
+      background:var(--bg-surface);border:1px solid var(--border);
+      border-radius:12px;padding:16px;display:flex;gap:14px;align-items:flex-start;
+      transition:all .2s;cursor:pointer;
+    }
+    .topic-card:hover{border-color:var(--border-lit);transform:translateX(4px);}
+    .topic-num{
+      width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:700;flex-shrink:0;
+    }
+    .topic-info{flex:1;min-width:0;}
+    .topic-title{font-size:14px;font-weight:600;color:var(--text-1);}
+    .topic-desc{font-size:12px;color:var(--text-2);margin-top:4px;line-height:1.5;}
+    .topic-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+    .tag{
+      font-size:11px;padding:3px 8px;border-radius:12px;font-weight:500;white-space:nowrap;
+    }
+    .tag-cyan{background:var(--cyan-dim);color:var(--cyan);}
+    .tag-violet{background:var(--violet-dim);color:var(--violet);}
+    .tag-gold{background:var(--gold-dim);color:var(--gold);}
+    .tag-green{background:var(--green-dim);color:var(--green);}
+    .tag-rose{background:var(--rose-dim);color:var(--rose);}
+    .topic-action{
+      display:flex;flex-direction:column;gap:6px;flex-shrink:0;
+    }
+    .topic-score{font-size:16px;font-weight:700;}
+
+    /* Script view */
+    .script-view{
+      background:var(--bg-surface);border:1px solid var(--border);
+      border-radius:12px;padding:20px;margin-top:16px;
+    }
+    .script-section{margin-bottom:16px;}
+    .script-section:last-child{margin-bottom:0;}
+    .script-label{font-size:11px;color:var(--text-3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
+    .script-content{font-size:13px;color:var(--text-1);line-height:1.7;}
+    .scene-row{
+      display:grid;grid-template-columns:60px 1fr 1fr auto;gap:12px;
+      padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;
+    }
+    .scene-row:last-child{border-bottom:none;}
+    .scene-time{color:var(--cyan);font-weight:600;font-variant-numeric:tabular-nums;}
+    .scene-visual{color:var(--text-2);}
+    .scene-audio{color:var(--text-1);}
+    .scene-text{color:var(--gold);}
+
+    /* Loading spinner */
+    .loading{
+      display:inline-flex;align-items:center;gap:8px;
+    }
+    .spinner{
+      width:18px;height:18px;border:2px solid var(--border-lit);
+      border-top-color:var(--cyan);border-radius:50%;
+      animation:spin .6s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg);} }
+
+    /* Toast */
+    .toast{
+      position:fixed;bottom:24px;right:24px;padding:14px 20px;border-radius:12px;
+      font-size:13px;font-weight:500;z-index:9999;animation:slideUp .3s ease;
+      max-width:400px;
+    }
+    .toast-success{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,229,160,.2);}
+    .toast-error{background:var(--rose-dim);color:var(--rose);border:1px solid rgba(251,113,133,.2);}
+    .toast-info{background:var(--cyan-dim);color:var(--cyan);border:1px solid rgba(0,212,255,.2);}
+    @keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+    /* Tabs */
+    .tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:20px;}
+    .tab{
+      padding:10px 20px;font-size:13px;font-weight:500;cursor:pointer;
+      color:var(--text-3);border-bottom:2px solid transparent;transition:all .2s;
+      background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font);
+    }
+    .tab:hover{color:var(--text-1);}
+    .tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+    .tab-panel{display:none;}
+    .tab-panel.active{display:block;}
+
+    /* Calendar grid */
+    .cal-week{display:grid;grid-template-columns:100px repeat(7,1fr);gap:6px;margin-bottom:8px;font-size:11px;color:var(--text-3);text-align:center;}
+    .cal-day-name{font-weight:600;}
+    .cal-row{display:grid;grid-template-columns:100px repeat(7,1fr);gap:6px;margin-bottom:4px;align-items:start;}
+    .cal-date-cell{text-align:center;font-size:11px;color:var(--text-3);padding:4px 0;}
+    .cal-item{
+      font-size:11px;padding:4px 6px;border-radius:6px;font-weight:500;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+
+    /* Status badge */
+    .status-badge{
+      font-size:10px;font-weight:600;padding:3px 8px;border-radius:10px;flex-shrink:0;
+    }
+    .status-draft{background:rgba(255,255,255,.05);color:var(--text-3);}
+    .status-approved{background:var(--cyan-dim);color:var(--cyan);}
+    .status-producing{background:var(--gold-dim);color:var(--gold);}
+    .status-published{background:var(--green-dim);color:var(--green);}
+
+    /* Empty state */
+    .empty-state{
+      text-align:center;padding:48px 20px;color:var(--text-3);
+    }
+    .empty-icon{font-size:40px;margin-bottom:12px;opacity:.4;}
+    .empty-title{font-size:15px;font-weight:600;color:var(--text-2);margin-bottom:6px;}
+    .empty-desc{font-size:13px;}
+
+    /* Responsive */
+    @media(max-width:900px){.shell{grid-template-columns:1fr;}.sidebar{display:none;} .main{padding:20px;} }
+    ::-webkit-scrollbar{width:6px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:3px;}
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <a href="index.html" class="brand">
+      <div class="brand-icon">✦</div>
+      <span class="brand-text">INYKO</span>
+    </a>
+
+    <div style="font-size:10px;font-weight:600;color:var(--text-3);letter-spacing:1px;text-transform:uppercase;padding:16px 12px 6px;">功能模块</div>
+
+    <a href="index.html" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" w="6" h="6" rx="1.5" fill="currentColor" opacity=".9"/><rect x="9" y="1" w="6" h="6" rx="1.5" fill="currentColor" opacity=".5"/><rect x="1" y="9" w="6" h="6" rx="1.5" fill="currentColor" opacity=".5"/><rect x="9" y="9" w="6" h="6" rx="1.5" fill="currentColor" opacity=".9"/></svg>
+      运营总览
+    </a>
+    <a href="ai.html" class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M11.54 4.46l-1.41 1.41M4.95 11.54l-1.41 1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      AI 营销策划
+    </a>
+    <a href="#" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 14L5 8l3 4 3-5 3 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      流量分析
+    </a>
+
+    <div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border);">
+      <a href="index.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 8h9M7 5l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        返回总览
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- HEADER -->
+    <div class="page-header">
+      <h1>AI 营销策划中心</h1>
+      <p>基于 Google Gemini 的真实 AI 引擎 · 自动生成选题 · 撰写脚本 · 规划排期</p>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('planner')">🎯 内容规划</button>
+      <button class="tab" onclick="switchTab('topics')">📋 选题库</button>
+      <button class="tab" onclick="switchTab('scripts')">📝 脚本库</button>
+      <button class="tab" onclick="switchTab('calendar')">📅 发布排期</button>
+    </div>
+
+    <!-- TAB 1: PLANNER (AI Generator) -->
+    <div id="panel-planner" class="tab-panel active">
+
+      <!-- Brand Config Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🤖</span> AI 策划配置
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-primary" id="btnGenerateTopics" onclick="generateTopics()">
+              ✨ AI 生成选题
+            </button>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text-2);margin-top:-8px;">填写品牌信息，AI 将根据你的业务特点生成定制化的内容规划</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>品牌名称 *</label>
+            <input type="text" id="inputBrand" placeholder="例：音可科技 / INYKO" value="">
+          </div>
+          <div class="form-group">
+            <label>产品/服务 *</label>
+            <input type="text" id="inputProduct" placeholder="例：隔音舱 / 声学产品" value="">
+          </div>
+          <div class="form-group">
+            <label>目标受众</label>
+            <input type="text" id="inputAudience" placeholder="例：25-35岁职场人群 / 企业采购决策者" value="">
+          </div>
+          <div class="form-group">
+            <label>发布平台（多选）</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;" id="platformCheckboxes">
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--text-2);">
+                <input type="checkbox" value="douyin" checked> 🎵 抖音
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--text-2);">
+                <input type="checkbox" value="xiaohongshu" checked> 📕 小红书
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--text-2);">
+                <input type="checkbox" value="bilibili"> 📺 B站
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--text-2);">
+                <input type="checkbox" value="weixin" checked> 💬 视频号
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--text-2);">
+                <input type="checkbox" value="kuaishou"> ⚡ 快手
+              </label>
+            </div>
+          </div>
+          <div class="form-group" style="grid-column:span 2;">
+            <label>补充说明（可选，帮助 AI 更精准地理解你的需求）</label>
+            <textarea id="inputExtra" placeholder="例：我们的核心卖点是静音效果好、安装简单、价格在 8000-30000 元区间..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results area -->
+      <div class="card" id="topicsResultCard" style="display:none;">
+        <div class="card-header">
+          <div class="card-title">
+            <span>💡</span> AI 生成的内容选题
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-sm" onclick="generateTopics()">🔄 重新生成</button>
+            <button class="btn btn-primary btn-sm" onclick="generateCalendarFromTopics()">📅 一键生成排期</button>
+          </div>
+        </div>
+        <div class="topic-list" id="topicsList"></div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: TOPICS LIBRARY -->
+    <div id="panel-topics" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><span>📋</span> 选题库</div>
+          <div class="card-actions">
+            <span id="topicCount" style="font-size:12px;color:var(--text-3);"></span>
+            <button class="btn btn-ghost btn-sm" onclick="loadTopics()">🔄 刷新</button>
+          </div>
+        </div>
+        <div id="topicsLibrary" class="topic-list">
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <div class="empty-title">还没有选题</div>
+            <div class="empty-desc">去「内容规划」页用 AI 生成第一批选题吧！</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: SCRIPTS LIBRARY -->
+    <div id="panel-scripts" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><span>📝</span> 脚本库</div>
+          <div class="card-actions">
+            <span id="scriptCount" style="font-size:12px;color:var(--text-3);"></span>
+            <button class="btn btn-ghost btn-sm" onclick="loadScripts()">🔄 刷新</button>
+          </div>
+        </div>
+        <div id="scriptsLibrary">
+          <div class="empty-state">
+            <div class="empty-icon">📜</div>
+            <div class="empty-title">还没有脚本</div>
+            <div class="empty-desc">从选题库里选一个选题，点击「写脚本」即可用 AI 生成完整脚本</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: CALENDAR -->
+    <div id="panel-calendar" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><span>📅</span> 发布排期日历</div>
+          <div class="card-actions">
+            <button class="btn btn-primary btn-sm" onclick="generateCalendarFromTopics()">🤖 AI 自动排期</button>
+          </div>
+        </div>
+        <div id="calendarArea"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── API BASE URL ──
+const API_BASE = window.location.origin;
+
+// ── TOAST ──
+function toast(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity='0'; setTimeout(() => el.remove(), 300); }, 3500);
+}
+
+// ── TABS ──
+function switchTab(tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`panel-${tabId}`).classList.add('active');
+
+  // Load data when switching tabs
+  if (tabId === 'topics') loadTopics();
+  if (tabId === 'scripts') loadScripts();
+  if (tabId === 'calendar') loadSchedule();
+}
+
+// ── GET SELECTED PLATFORMS ──
+function getSelectedPlatforms() {
+  const checks = document.querySelectorAll('#platformCheckboxes input[type=checkbox]:checked');
+  return Array.from(checks).map(c => c.value);
+}
+
+// ── GENERATE TOPICS ──
+async function generateTopics() {
+  const brand = document.getElementById('inputBrand').value.trim();
+  const product = document.getElementById('inputProduct').value.trim();
+  if (!brand || !product) {
+    return toast('请填写品牌名称和产品/服务', 'error');
+  }
+
+  const btn = document.getElementById('btnGenerateTopics');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner"></span> AI 正在思考…';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/ai/generate-topics`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        brandName: brand,
+        product: product,
+        targetAudience: document.getElementById('inputAudience').value.trim() || undefined,
+        platforms: getSelectedPlatforms(),
+        count: 6
+      })
+    });
+
+    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
+    const data = await res.json();
+
+    // Show results
+    const card = document.getElementById('topicsResultCard');
+    const list = document.getElementById('topicsList');
+    card.style.display = '';
+
+    list.innerHTML = data.data.map((t, i) => `
+      <div class="topic-card">
+        <div class="topic-num" style="background:${['var(--cyan-dim)','var(--violet-dim)','var(--gold-dim)','var(--green-dim)','var(--rose-dim)','var(--cyan-dim)'][i]};color:${['var(--cyan)','var(--violet)','var(--gold)','var(--green)','var(--rose)','var(--cyan)'][i]};">${i+1}</div>
+        <div class="topic-info">
+          <div class="topic-title">${t.title || '未命名选题'}</div>
+          <div class="topic-desc">${t.description || ''}</div>
+          <div class="topic-meta">
+            ${t.platforms ? t.platforms.map(p =>
+              `<span class="tag tag-cyan">${p === 'douyin'?'抖音':p === 'xiaohongshu'?'小红书':p === 'bilibili'?'B站':p === 'weixin'?'视频号':'快手'}</span>`
+            ).join('') : ''}
+            ${t.tags && t.tags.length ? t.tags.slice(0,3).map(tag => `<span class="tag tag-violet">#${tag}</span>`).join('') : ''}
+            <span class="tag tag-gold">${t.bestPostTime||'--'} 最佳</span>
+            ${t.estimatedEngagement ?
+              `<span class="tag ${t.estimatedEngagement==='high'?'tag-green':t.estimatedEngagement==='medium'?'tag-gold':'tag-rose'}">
+                ${t.estimatedEngagement==='high'?'🔥 高互动':t.estimatedEngagement==='medium'?'⭐ 中互动':'📊 低互动'}
+              </span>` : ''
+            }
+          </div>
+        </div>
+        <div class="topic-action">
+          <button class="btn btn-primary btn-sm" onclick="generateScriptForTopic('${t.id}','${(t.title||'').replace(/'/g,"\\'")}')" title="用此选题生成脚本">✍️ 写脚本</button>
+          <button class="btn btn-ghost btn-sm" onclick="approveTopic('${t.id}')">✅ 采用</button>
+        </div>
+      </div>
+    `).join('');
+
+    toast(`成功生成 ${data.data.length} 个选题！`, 'success');
+  } catch (err) {
+    console.error(err);
+    toast('AI 生成失败：' + err.message, 'error');
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+}
+
+// ── GENERATE SCRIPT FOR TOPIC ──
+async function generateScriptForTopic(topicId, topicTitle) {
+  const brand = document.getElementById('inputBrand').value.trim() || '';
+  const product = document.getElementById('inputProduct').value.trim() || '';
+  const audience = document.getElementById('inputAudience').value.trim() || '';
+
+  toast('正在为「'+topicTitle+'」生成脚本…', 'info');
+
+  try {
+    const res = await fetch(`${API_BASE}/api/ai/generate-script`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topicTitle,
+        topicDescription: '',
+        brandName: brand,
+        product: product,
+        duration: 30,
+        style: 'engaging'
+      })
+    });
+
+    if (!res.ok) throw new Error(`脚本生成失败 (${res.status})`);
+    const data = await res.data.json();
+
+    showScriptModal(data.data, topicTitle);
+    loadScripts(); // Refresh scripts tab
+    toast('脚本已生成并保存到脚本库！', 'success');
+  } catch (err) {
+    console.error(err);
+    toast('脚本生成失败：' + err.message, 'error');
+  }
+}
+
+// ── SHOW SCRIPT MODAL ──
+function showScriptModal(script, title) {
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);
+    z-index:10000;display:flex;align-items:center;justify-content:center;
+    animation:fadeIn .2s ease;
+  `;
+  modal.innerHTML = `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
+      max-width:720px;width:94%;max-height:85vh;overflow-y:auto;padding:32px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div><h2 style="font-size:18px;">${title}</h2><p style="font-size:12px;color:var(--text-3);margin-top:4px;">AI 生成的拍摄脚本</p></div>
+        <button onclick="this.closest('[style*=position]').remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:24px;">&times;</button>
+      </div>
+
+      <div style="background:linear-gradient(135deg,var(--cyan-dim),var(--violet-dim));
+        padding:16px;border-radius:12px;margin-bottom:20px;">
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:6px;">🎬 开场钩子</div>
+        <div style="font-size:16px;font-weight:600;color:var(--text-1);line-height:1.6;">${script.hook || ''}</div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:12px;">📹 分镜脚本</div>
+        ${(script.scenes||[]).map(s=>`
+          <div class="scene-row">
+            <div class="scene-time">${s.time||''}</div>
+            <div class="scene-visual">📷 ${s.visual||''}</div>
+            <div class="scene-audio">🗣️ ${s.audio||''}</div>
+            <div class="scene-text">📝 ${s.text||''}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div style="background:var(--bg-surface);padding:14px;border-radius:12px;">
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:6px;">🔚 结尾引导语</div>
+          <div style="font-size:13px;color:var(--text-1);line-height:1.6;">${script.cta||''}</div>
+        </div>
+        <div style="background:var(--bg-surface);padding:14px;border-radius:12px;">
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:6px;">🎵 BGM 建议</div>
+          <div style="font-size:13px;color:var(--text-1);line-height:1.6;">${script.bgm||''}</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;padding:14px;background:var(--gold-dim);border-radius:12px;">
+        <div style="font-size:12px;color:var(--gold);margin-bottom:6px;">🏷️ 推荐话题标签</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${(script.tags||[]).map(t=>`<span class="tag tag-gold">${t}</span>`).join('')}
+        </div>
+      </div>
+
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="copyScript(this)">📋 复制脚本</button>
+        <button class="btn btn-primary" onclick="switchTab('scripts');this.closest('[style*=position]').remove()">查看脚本库</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.onclick = e => { if(e.target===modal)modal.remove(); };
+  
+  // Store script data for copy
+  modal._scriptData = script;
+}
+
+function copyScript(btn) {
+  const modal = btn.closest('[style*="max-width"]');
+  const s = modal._scriptData;
+  const text = [
+    `【开场】${s.hook}`,
+    ...s.scenes?.map(sc => `[${sc.time}] ${sc.audio} | ${sc.text}`)||[],
+    `【结尾】${s.cta}`,
+    `【BGM】${s.bgm}`,
+    `【标签】${s.tags?.join(' ')||''}`
+  ].join('\n');
+  navigator.clipboard.writeText(text).then(()=>toast('脚本已复制到剪贴板','success'));
+}
+
+// ── APPROVE TOPIC ──
+async function approveTopic(id) {
+  try {
+    await fetch(`${API_BASE}/api/ai/topic-status/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'approved' })
+    });
+    toast('选题已标记为采用 ✓', 'success');
+  } catch(e){ toast('操作失败','error'); }
+}
+
+// ── LOAD TOPICS LIBRARY ──
+async function loadTopics() {
+  const container = document.getElementById('topicsLibrary');
+  const counter = document.getElementById('topicCount');
+  try {
+    const res = await fetch(`${API_BASE}/api/ai/topics`);
+    const data = await res.json();
+    const topics = data.data || [];
+    counter.textContent = `${topics.length} 条`;
+    
+    if (!topics.length) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">还没有选题</div><div class="empty-desc">去「内容规划」页用 AI 生成第一批选题吧！</div></div>`;
+      return;
+    }
+    
+    container.innerHTML = topics.map((t,i)=>`
+      <div class="topic-card" data-id="${t.id}">
+        <div class="topic-num" style="background:${i%3===0?'var(--cyan-dim)':i%3===1?'var(--violet-dim)':'var(--gold-dim)'};color:${i%3===0?'var(--cyan)':i%3===1?'var(--violet)':'var(--gold)'};">${i+1}</div>
+        <div class="topic-info">
+          <div class="topic-title">${t.title||'未命名'}</div>
+          <div class="topic-desc">${t.description||''}</div>
+          <div class="topic-meta">
+            <span class="status-badge status-${t.status||'draft'}">${{draft:'草稿',approved:'已采用',producing:'制作中',published:'已发布'}[t.status]||'草稿'}</span>
+            ${t.createdAt?`<span style="font-size:11px;color:var(--text-3);">${new Date(t.createdAt).toLocaleDateString()}</span>`:''}
+          </div>
+        </div>
+        <div class="topic-action">
+          <button class="btn btn-primary btn-sm" onclick="generateScriptForTopic('${t.id}','${(t.title||'').replace(/'/g,"\\'")}')" title="写脚本">✍️</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteTopic('${t.id}')" style="color:var(--rose);" title="删除">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e){
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">加载失败</div><div class="empty-desc">'+e.message+'</div></div>';
+  }
+}
+
+// ── LOAD SCRIPTS LIBRARY ──
+async function loadScripts() {
+  const container = document.getElementById('scriptsLibrary');
+  const counter = document.getElementById('scriptCount');
+  try {
+    const res = await fetch(`${API_BASE}/api/ai/scripts`);
+    const data = await res.json();
+    const scripts = data.data || [];
+    counter.textContent = `${scripts.length} 个`;
+
+    if (!scripts.length) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-icon">📜</div><div class="empty-title">还没有脚本</div><div class="empty-desc">从选题库里选一个选题，点击「写脚本」即可用 AI 生成完整脚本</div></div>`;
+      return;
+    }
+
+    container.innerHTML = scripts.map((s,i)=>`
+      <div class="script-view" style="cursor:pointer;" onclick="showScriptModal(${JSON.stringify(s).replace(/"/g,'&quot;')},'${(s.topicTitle||'').replace(/'/g,"\\'')}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div>
+            <div style="font-size:15px;font-weight:600;">${s.topicTitle||'未命名视频'}</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:2px;">${s.duration||'30s'} · ${new Date(s.createdAt||Date.now()).toLocaleString()}</div>
+          </div>
+          <span style="background:var(--cyan-dim);color:var(--cyan);font-size:11px;padding:3px 8px;border-radius:10px;">点击展开</span>
+        </div>
+        <div style="font-size:13px;color:var(--text-2);line-height:1.6;">${(s.hook||'').slice(0,120)}...</div>
+      </div>
+    `).join('');
+  } catch(e){
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">加载失败</div></div>';
+  }
+}
+
+// ── DELETE TOPIC ──
+async function deleteTopic(id) {
+  try {
+    await fetch(`${API_BASE}/api/ai/topics/${id}`, { method: 'DELETE' });
+    loadTopics();
+    toast('选题已删除','success');
+  } catch(e){ toast('删除失败','error'); }
+}
+
+// ── GENERATE CALENDAR ──
+async function generateCalendarFromTopics() {
+  const brand = document.getElementById('inputBrand').value.trim() || '';
+  const product = document.getElementById('inputProduct').value.trim() || '';
+  toast('AI 正在为你生成一周排期…','info');
+
+  try {
+    const topicsRes = await fetch(`${API_BASE}/api/ai/topics`);
+    const topicsData = await topicsRes.json();
+    const topics = (topicsData.data || []).slice(0, 7);
+
+    const res = await fetch(`${API_BASE}/api/ai/content-calendar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        brandName: brand,
+        product: product,
+        platforms: getSelectedPlatforms(),
+        topics: topics
+      })
+    });
+    
+    if (!res.ok) throw new Error(`排期生成失败 (${res.status})`);
+    const calData = await res.json();
+
+    renderCalendar(calData.data);
+    toast('排期已生成！','success');
+  } catch(e) {
+    toast('排期生成失败：'+e.message,'error');
+  }
+}
+
+// ── LOAD SCHEDULE ──
+async function loadSchedule() {
+  try {
+    const res = await fetch(`${API_BASE}/api/ai/schedule`);
+    const data = await res.json();
+    renderCalendar({ calendar: [], weeklyStrategy: '', scheduleItems: data.data || [] });
+  } catch(e){}
+}
+
+// ── RENDER CALENDAR ──
+function renderCalendar(data) {
+  const container = document.getElementById('calendarArea');
+  const items = data.scheduleItems || [];
+  const weekStrategy = data.weeklyStrategy || '';
+  const days = ['周一','周二','周三','周四','周五','周六','周日'];
+  
+  // Group by date
+  const grouped = {};
+  items.forEach(item => {
+    const d = item.date || item.scheduledDate || '未安排';
+    if(!grouped[d]) grouped[d]=[];
+    grouped[d].push(item);
+  });
+
+  // Generate next 7 dates
+  const today = new Date();
+  const weekDates = [];
+  for(let i=0;i<7;i++){
+    const d = new Date(today);
+    d.setDate(today.getDate()+i);
+    const dateStr = d.toISOString().slice(0,10);
+    weekDates.push({date:dateStr,day:days[d.getDay()==0?6:d.getDay()-1],isToday:i==0});
+  }
+
+  container.innerHTML = `
+    ${weekStrategy?`<div style="padding:14px;background:linear-gradient(135deg,var(--cyan-dim),var(--violet-dim));border-radius:12px;margin-bottom:20px;font-size:13px;color:var(--text-1);line-height:1.7;"><strong>本周策略：</strong>${weekStrategy}</div>`:''}
+    <div class="cal-week">
+      <div></div>
+      ${days.map(d=>`<div class="cal-day-name">${d}</div>`).join('')}
+    </div>
+    ${weekDates.map(w=>{
+      const dayItems = grouped[w.date]||[];
+      return `
+        <div class="cal-row">
+          <div class="date-cell" style="${w.isToday?'font-weight:700;color:var(--cyan);':''}">${w.date.slice(5)}<br><small>${w.day}${w.isToday?'·今天':''}</small></div>
+          ${Array(7).fill().map((_,idx)=>{
+            // Simple layout: spread items across columns
+            const colItem = dayItems.find(i=>{
+              const platIdx={'douyin':0,'xiaohongshu':1,'bilibili':2,'weixin':3,'kuaishou':4}[i.platform];
+              return idx===platIdx;
+            })||null;
+            if(colItem)return `<div class="cal-item" style="background:${
+              colItem.platform==='douyin'?colItem.type==='video'?'var(--cyan-dim)':'rgba(251,113,133,.08)':
+              colItem.platform==='xiaohongshu'?'var(--violet-dim)':
+              colItem.platform==='bilibili'?'rgba(0,229,160,.06)':'var(--gold-dim)'
+            };color:${
+              colItem.platform==='douyin'?'var(--cyan)':
+              colItem.platform==='xiaohongshu'?'var(--violet)':
+              colItem.platform==='bilibili'?'var(--green)':'var(--gold)'
+            };">${colItem.time||''} ${colItem.title||colItem.type||''}</div>`;
+            return '<div></div>';
+          }).join('')}
+        </div>`;
+    }).join('')}
+    ${items.length===0&&!weekStrategy?'<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">暂无排期计划</div><div class="empty-desc">点击「AI 自动排期」让 Gemini 为你规划一周的内容发布计划</div></div>`:''}
+  `;
+}
+
+// ── INIT: Load saved brand config from localStorage ──
+(function(){
+  const savedBrand = localStorage.getItem('inyko_ai_brand');
+  if(savedBrand) try{
+    const cfg = JSON.parse(savedBrand);
+    if(cfg.brand)document.getElementById('inputBrand').value=cfg.brand;
+    if(cfg.product)document.getElementById('inputProduct').value=cfg.product;
+    if(cfg.audience)document.getElementById('inputAudience').value=cfg.audience;
+  }catch(e){}
+
+  // Auto-save on change
+  ['inputBrand','inputProduct','inputAudience'].forEach(id=>{
+    document.getElementById(id)?.addEventListener('change',()=>{
+      localStorage.setItem('inyko_ai_brand',JSON.stringify({
+        brand:document.getElementById('inputBrand').value,
+        product:document.getElementById('inputProduct').value,
+        audience:document.getElementById('inputAudience').value
+      }));
+    });
+  });
+})();
+
+</script>
+</body>
+</html>
