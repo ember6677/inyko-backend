@@ -405,11 +405,18 @@ const API_BASE = window.location.origin;
 
 // ── TOAST ──
 function toast(msg, type='info') {
+  // 移除旧的同类 toast
+  document.querySelectorAll('.toast').forEach(t => t.remove());
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
   el.textContent = msg;
+  el.style.cssText = 'opacity:1;transition:opacity 0.3s;';
   document.body.appendChild(el);
-  setTimeout(() => { el.style.opacity='0'; setTimeout(() => el.remove(), 300); }, 3500);
+  // 错误信息显示 6 秒，其他 3.5 秒
+  const duration = type === 'error' ? 6000 : 3500;
+  setTimeout(() => { el.style.opacity='0'; setTimeout(() => el.remove(), 300); }, duration);
+  // 同时在控制台输出，方便调试
+  console[type === 'error' ? 'error' : 'log']('[INYKO]', msg);
 }
 
 // ── TABS ──
@@ -495,6 +502,16 @@ async function generateTopics() {
   } catch (err) {
     console.error(err);
     toast('AI 生成失败：' + err.message, 'error');
+    // 在页面内也显示错误，不依赖 toast 定位
+    const card = document.getElementById('topicsResultCard');
+    card.style.display = '';
+    document.getElementById('topicsList').innerHTML = `
+      <div style="padding:20px;text-align:center;color:var(--rose);">
+        <div style="font-size:24px;margin-bottom:8px;">⚠️</div>
+        <div style="font-weight:600;margin-bottom:6px;">AI 生成失败</div>
+        <div style="font-size:13px;opacity:.8;">${err.message}</div>
+        <div style="margin-top:12px;font-size:12px;opacity:.6;">请检查 Render 后台的 GROQ_API_KEY 是否已配置，并稍后重试</div>
+      </div>`;
   } finally {
     btn.innerHTML = originalText;
     btn.disabled = false;

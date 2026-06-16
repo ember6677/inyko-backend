@@ -4,6 +4,12 @@ const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 
+// 兼容 Node 14/16（无内置 fetch）和 Node 18+（有内置 fetch）
+const nodeFetch = (() => {
+  try { return require('node-fetch'); } catch(e) { return null; }
+})();
+const _fetch = nodeFetch || (typeof fetch !== 'undefined' ? fetch : null);
+
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
@@ -11,8 +17,9 @@ const GROQ_MODEL = 'llama-3.3-70b-versatile';
 // ========== 通用 Groq 调用 ==========
 async function callGroq(prompt, temperature = 0.7) {
   if (!GROQ_API_KEY) throw new Error('未配置 GROQ_API_KEY');
+  if (!_fetch) throw new Error('fetch 不可用，请升级 Node.js 到 18 以上');
 
-  const res = await fetch(GROQ_URL, {
+  const res = await _fetch(GROQ_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
