@@ -1,35 +1,44 @@
-// INYKO AI 营销引擎 — Google Gemini 集成
+// INYKO AI 营销引擎 — Groq (Llama) 集成
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
-// ========== 通用 Gemini 调用 ==========
-async function callGemini(prompt, temperature = 0.7) {
-  const res = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
+// ========== 通用 Groq 调用 ==========
+async function callGroq(prompt, temperature = 0.7) {
+  if (!GROQ_API_KEY) throw new Error('未配置 GROQ_API_KEY');
+
+  const res = await fetch(GROQ_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${GROQ_API_KEY}`
+    },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature,
-        maxOutputTokens: 2048,
-        topP: 0.95,
-        topK: 40
-      }
+      model: GROQ_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: '你是一位专业的中文社交媒体内容策划师，擅长抖音、小红书、B站、微信视频号的内容运营。请始终用中文回复，输出格式严格按照用户要求。'
+        },
+        { role: 'user', content: prompt }
+      ],
+      temperature,
+      max_tokens: 2048
     })
   });
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Gemini API 错误 (${res.status}): ${errText.slice(0, 300)}`);
+    throw new Error(`Groq API 错误 (${res.status}): ${errText.slice(0, 300)}`);
   }
 
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return data.choices?.[0]?.message?.content || '';
 }
 
 // ========== API 端点 ==========
@@ -38,26 +47,24 @@ async function callGemini(prompt, temperature = 0.7) {
 router.post('/generate-topics', async (req, res) => {
   try {
     const { brandName, product, targetAudience, platforms, count = 5 } = req.body;
-    
+
     if (!brandName || !product) return res.status(400).json({ error: '缺少品牌名或产品信息' });
 
-    const prompt = `你是一个资深社交媒体内容策划师，擅长抖音、小红书、B站等平台的内容运营。
+    const prompt = `请为以下品牌生成 ${count} 个短视频/图文内容选题：
 
-请为以下品牌生成 ${count} 个短视频/图文内容选题：
-
-**品牌**: ${brandName}
-**产品/服务**: ${product}
-**目标受众**: ${targetAudience || '25-35岁职场人群'}
-**发布平台**: ${platforms?.join('、') || '抖音、小红书、B站'}
+品牌: ${brandName}
+产品/服务: ${product}
+目标受众: ${targetAudience || '25-35岁职场人群'}
+发布平台: ${platforms?.join('、') || '抖音、小红书、B站'}
 
 要求：
 1. 每个选题必须具体可执行，不是泛泛而谈
 2. 标题要吸引人（符合中文互联网传播规律）
 3. 标注适合的平台
-4. 给出预计互动率（高/中/低）
-5. 用 JSON 数组格式返回
+4. 给出预计互动率（high/medium/low）
+5. 严格用 JSON 数组格式返回，不要有任何额外文字
 
-返回格式（严格JSON数组）：
+返回格式（纯JSON数组）：
 [
   {
     "title": "选题标题",
@@ -71,20 +78,18 @@ router.post('/generate-topics', async (req, res) => {
   }
 ]`;
 
-    const rawText = await callGemini(prompt);
-    
-    // 提取 JSON
+    const rawText = await callGroq(prompt);
+
     let topics;
     try {
       const jsonMatch = rawText.match(/\[[\s\S]*\]/);
       if (jsonMatch) topics = JSON.parse(jsonMatch[0]);
       else topics = JSON.parse(rawText);
     } catch (e) {
-      // 如果解析失败，手动构造
       const lines = rawText.split('\n').filter(l => l.trim());
-      topics = lines.slice(0, count).map((line, i) => ({
+      topics = lines.slice(0, count).map((line) => ({
         id: uuidv4(),
-        title: line.slice(0, 50),
+        title: line.replace(/^[\d\.\-\*]+\s*/, '').slice(0, 50),
         description: line.slice(0, 100),
         platforms: ['douyin'],
         contentType: 'video',
@@ -95,7 +100,6 @@ router.post('/generate-topics', async (req, res) => {
       }));
     }
 
-    // 存入数据库
     topics.forEach(t => {
       t.id = t.id || uuidv4();
       t.createdAt = new Date().toISOString();
@@ -117,25 +121,32 @@ router.post('/generate-script', async (req, res) => {
 
     if (!topicTitle || !topicDescription) return res.status(400).json({ error: '缺少选题信息' });
 
-    const prompt = `你是专业短视频脚本编剧。根据以下选题生成完整的拍摄脚本：
+    const styleMap = {
+      humorous: '幽默搞笑',
+      professional: '专业干货',
+      storytelling: '故事叙事',
+      engaging: '轻松有趣'
+    };
 
-**品牌**: ${brandName || ''}
-**产品**: ${product || ''}
-**选题**: ${topicTitle}
-**描述**: ${topicDescription}
-**视频时长**: 约 ${duration} 秒
-**风格**: ${style === 'humorous' ? '幽默搞笑' : style === 'professional' ? '专业干货' : style === 'storytelling' ? '故事叙事' : '轻松有趣'}
+    const prompt = `根据以下选题生成完整的短视频拍摄脚本：
+
+品牌: ${brandName || ''}
+产品: ${product || ''}
+选题: ${topicTitle}
+描述: ${topicDescription}
+视频时长: 约 ${duration} 秒
+风格: ${styleMap[style] || '轻松有趣'}
 
 请输出：
 1. 开场钩子（前3秒抓住观众）
-2. 分镜脚本（按秒数划分每个镜头）
+2. 分镜脚本（按时间段划分每个镜头）
 3. 口播文案（完整逐字稿）
 4. 字幕文字
 5. BGM建议
 6. 结尾引导语（CTA）
 7. 推荐话题标签（#格式）
 
-用 JSON 格式返回：
+严格用以下 JSON 格式返回（不要额外文字）：
 {
   "hook": "开场3秒话术",
   "scenes": [
@@ -147,7 +158,7 @@ router.post('/generate-script', async (req, res) => {
   "duration": "${duration}s"
 }`;
 
-    const rawText = await callGemini(prompt);
+    const rawText = await callGroq(prompt);
 
     let script;
     try {
@@ -164,7 +175,6 @@ router.post('/generate-script', async (req, res) => {
       };
     }
 
-    // 保存脚本到数据库
     script.id = uuidv4();
     script.topicTitle = topicTitle;
     script.createdAt = new Date().toISOString();
@@ -182,7 +192,7 @@ router.post('/generate-titles', async (req, res) => {
   try {
     const { topic, platform, count = 8 } = req.body;
 
-    const prompt = `你是抖音/小红书爆款标题专家。针对"${topic}"这个内容主题，生成 ${count} 个有爆款潜力的标题。
+    const prompt = `针对"${topic}"这个内容主题，生成 ${count} 个有爆款潜力的标题。
 
 平台: ${platform || '抖音'}
 
@@ -190,17 +200,17 @@ router.post('/generate-titles', async (req, res) => {
 - 符合平台调性（抖音偏口语化+悬念，小红书偏精致+emoji，B站偏梗+深度）
 - 利用数字法则、反差法、痛点法等技巧
 - 每个标题不超过20字
-- 返回纯 JSON 数组: ["标题1","标题2",...]`;
+- 严格返回纯 JSON 数组，不要额外文字: ["标题1","标题2",...]`;
 
-    const rawText = await callGemini(prompt, 0.9); // 更高的创意性
-    
+    const rawText = await callGroq(prompt, 0.9);
+
     let titles;
     try {
       const jsonMatch = rawText.match(/\[[\s\S]*\]/);
       titles = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
       if (!Array.isArray(titles)) titles = [rawText];
     } catch (e) {
-      titles = rawText.split('\n').filter(l => l.trim()).slice(0, count);
+      titles = rawText.split('\n').filter(l => l.trim()).map(l => l.replace(/^[\d\.\-\*\"]+\s*/, '').replace(/\",$/, '')).slice(0, count);
     }
 
     res.json({ code: 0, data: titles.slice(0, count) });
@@ -215,25 +225,27 @@ router.post('/content-calendar', async (req, res) => {
   try {
     const { brandName, product, topics, platforms } = req.body;
 
-    const prompt = `你是一个专业的社交媒体运营总监。请基于以下信息，生成未来7天的内容排期计划。
+    const today = new Date();
+    const dateStr = today.toISOString().slice(0, 10);
+
+    const prompt = `请基于以下信息，生成从 ${dateStr} 开始的7天内容排期计划。
 
 品牌: ${brandName || ''}
 产品: ${product || ''}
-已有选题/任务: ${(topics || []).map(t => typeof t === 'string' ? t : t.title || '').join('；') || '待定'}
+已有选题: ${(topics || []).map(t => typeof t === 'string' ? t : t.title || '').join('；') || '待定'}
 目标平台: ${platforms?.join('、') || '抖音、小红书'}
 
 要求：
 1. 每天1-3条内容
-2. 不同平台错开发布时间（避免同质化）
-3. 周末和节假日适当调整策略
-4. 标注最佳发布时间段
-5. 内容类型混合（视频/图文/直播预告）
+2. 不同平台错开发布时间
+3. 标注最佳发布时间段
+4. 内容类型混合（video/image/live）
 
-用严格 JSON 格式返回：
+严格用以下 JSON 格式返回（不要额外文字）：
 {
   "calendar": [
     {
-      "date": "2026-MM-DD",
+      "date": "YYYY-MM-DD",
       "dayOfWeek": "周一",
       "items": [
         {
@@ -249,8 +261,8 @@ router.post('/content-calendar', async (req, res) => {
   "weeklyStrategy": "本周整体策略说明"
 }`;
 
-    const rawText = await callGemini(prompt);
-    
+    const rawText = await callGroq(prompt);
+
     let calendar;
     try {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
@@ -259,7 +271,6 @@ router.post('/content-calendar', async (req, res) => {
       calendar = { calendar: [], weeklyStrategy: rawText };
     }
 
-    // 保存排期
     calendar.calendar?.forEach(day => {
       day.items?.forEach(item => {
         item.id = uuidv4();
@@ -309,7 +320,7 @@ router.delete('/scripts/:id', (req, res) => {
   res.json({ code: 0, message: '删除成功' });
 });
 
-// PUT /api/ai/topic-status/:id — 更新选题状态（draft→approved→producing→published）
+// PUT /api/ai/topic-status/:id — 更新选题状态
 router.put('/topic-status/:id', (req, res) => {
   const { status } = req.body;
   if (!['draft', 'approved', 'producing', 'published'].includes(status)) {
