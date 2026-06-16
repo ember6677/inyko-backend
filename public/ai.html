@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI 营销策划中心 · INYKO</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -19,7 +16,7 @@
       --violet-dim:rgba(167,139,250,.12); --rose:#fb7185;
       --rose-dim:rgba(251,113,133,.12);
       --text-1:#f0f2ff; --text-2:#8890b0; --text-3:#4a5070;
-      --font:'Noto Sans SC',sans-serif;
+      --font:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
     }
     html { scroll-behavior: smooth; }
     body {
@@ -260,7 +257,7 @@
     <!-- HEADER -->
     <div class="page-header">
       <h1>AI 营销策划中心</h1>
-      <p>基于 Google Gemini 的真实 AI 引擎 · 自动生成选题 · 撰写脚本 · 规划排期</p>
+      <p>基于 Groq AI (Llama-3.3) 的真实 AI 引擎 · 自动生成选题 · 撰写脚本 · 规划排期</p>
     </div>
 
     <!-- TABS -->
@@ -440,11 +437,15 @@ function getSelectedPlatforms() {
 
 // ── GENERATE TOPICS ──
 async function generateTopics() {
+  console.log('[INYKO] generateTopics 被调用');
   const brand = document.getElementById('inputBrand').value.trim();
   const product = document.getElementById('inputProduct').value.trim();
+  console.log('[INYKO] brand:', brand, '| product:', product);
   if (!brand || !product) {
+    alert('⚠️ 请填写品牌名称和产品/服务（两个字段都必须填）');
     return toast('请填写品牌名称和产品/服务', 'error');
   }
+  console.log('[INYKO] 开始请求 API...');
 
   const btn = document.getElementById('btnGenerateTopics');
   const originalText = btn.innerHTML;
@@ -816,7 +817,7 @@ function renderCalendar(data) {
           }).join('')}
         </div>`;
     }).join('')}
-    ${items.length===0&&!weekStrategy?'<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">暂无排期计划</div><div class="empty-desc">点击「AI 自动排期」让 Gemini 为你规划一周的内容发布计划</div></div>`:''}
+    ${items.length===0&&!weekStrategy?'<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">暂无排期计划</div><div class="empty-desc">点击「AI 自动排期」让 AI 为你规划一周的内容发布计划</div></div>`:''}
   `;
 }
 
