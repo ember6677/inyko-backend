@@ -1,31 +1,19 @@
 // INYKO AI 营销引擎 — Groq (Llama) 集成
 const express = require('express');
 const router = express.Router();
+const https = require('https');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 
-// 兼容 Node 14/16（无内置 fetch）和 Node 18+（有内置 fetch）
-const nodeFetch = (() => {
-  try { return require('node-fetch'); } catch(e) { return null; }
-})();
-const _fetch = nodeFetch || (typeof fetch !== 'undefined' ? fetch : null);
-
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
-// ========== 通用 Groq 调用 ==========
-async function callGroq(prompt, temperature = 0.7) {
-  if (!GROQ_API_KEY) throw new Error('未配置 GROQ_API_KEY');
-  if (!_fetch) throw new Error('fetch 不可用，请升级 Node.js 到 18 以上');
+// ========== 用 Node 内置 https 调用 Groq（零依赖）==========
+function callGroq(prompt, temperature = 0.7) {
+  return new Promise((resolve, reject) => {
+    if (!GROQ_API_KEY) return reject(new Error('未配置 GROQ_API_KEY'));
 
-  const res = await _fetch(GROQ_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROQ_API_KEY}`
-    },
-    body: JSON.stringify({
+    const body = JSON.stringify({
       model: GROQ_MODEL,
       messages: [
         {
@@ -36,16 +24,40 @@ async function callGroq(prompt, temperature = 0.7) {
       ],
       temperature,
       max_tokens: 2048
-    })
+    });
+
+    const options = {
+      hostname: 'api.groq.com',
+      path: '/openai/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Length': Buffer.byteLength(body)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (res.statusCode !== 200) {
+            return reject(new Error(`Groq API 错误 (${res.statusCode}): ${json.error?.message || data.slice(0,200)}`));
+          }
+          resolve(json.choices?.[0]?.message?.content || '');
+        } catch (e) {
+          reject(new Error('解析 Groq 响应失败: ' + data.slice(0, 200)));
+        }
+      });
+    });
+
+    req.on('error', (e) => reject(new Error('网络错误: ' + e.message)));
+    req.setTimeout(30000, () => { req.destroy(); reject(new Error('Groq 请求超时（30s）')); });
+    req.write(body);
+    req.end();
   });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Groq API 错误 (${res.status}): ${errText.slice(0, 300)}`);
-  }
-
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content || '';
 }
 
 // ========== API 端点 ==========
