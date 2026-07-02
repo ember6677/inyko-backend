@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据录入 · 音可科技</title>
+  <style>
+    :root {
+      --bg-deep: #08090f; --bg-card: #141620; --bg-surface: #0f1118;
+      --border: rgba(255,255,255,0.07); --border-lit: rgba(255,255,255,0.12);
+      --cyan: #00d4ff; --green: #00e5a0; --violet: #a78bfa; --gold: #e8c97a; --rose: #fb7185;
+      --text-1: #f0f2ff; --text-2: #8890b0; --text-3: #4a5070;
+      --font: -apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font); background: var(--bg-deep); color: var(--text-1);
+      min-height: 100vh; -webkit-font-smoothing: antialiased;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0,212,255,0.04) 0%, transparent 60%),
+                  radial-gradient(ellipse 60% 50% at 80% 80%, rgba(0,229,160,0.04) 0%, transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .shell {
+      display: grid; grid-template-columns: 240px 1fr; min-height: 100vh;
+      position: relative; z-index: 1;
+    }
+
+    .topbar {
+      grid-column: 1/-1; display: flex; align-items: center; padding: 0 24px; gap: 16px;
+      background: rgba(8,9,15,0.9); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100;
+      height: 56px;
+    }
+    .topbar-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark {
+      width: 28px; height: 28px; background: linear-gradient(135deg, var(--cyan), #0088cc);
+      border-radius: 7px; display: flex; align-items: center; justify-content: center;
+    }
+    .topbar-logo span { font-size: 15px; font-weight: 700; color: var(--text-1); letter-spacing: 0.3px; }
+    .topbar-title { font-size: 13px; color: var(--text-3); padding-left: 16px; border-left: 1px solid var(--border); }
+    .topbar-spacer { flex: 1; }
+    .topbar-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--green); }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: breathe 2s infinite; }
+    @keyframes breathe {
+      0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.6; transform:scale(0.8); }
+    }
+    .topbar-time { font-size: 12px; color: var(--text-3); min-width: 72px; text-align: right; }
+    .topbar-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--violet), var(--cyan));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: white; cursor: pointer;
+    }
+
+    .sidebar {
+      background: var(--bg-surface); border-right: 1px solid var(--border);
+      padding: 20px 12px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto;
+    }
+    .sidebar-section { font-size: 10px; font-weight: 600; color: var(--text-3); letter-spacing: 1.2px; text-transform: uppercase; padding: 12px 12px 6px; margin-top: 8px; }
+    .sidebar-section:first-child { margin-top: 0; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+      border-radius: 8px; cursor: pointer; transition: all 0.2s;
+      text-decoration: none; color: var(--text-2); font-size: 13px; position: relative;
+    }
+    .nav-item:hover { background: #1a1d2a; color: var(--text-1); }
+    .nav-item.active { background: rgba(0,229,160,0.08); color: var(--green); }
+    .nav-item.active::before {
+      content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+      width: 2px; border-radius: 2px; background: var(--green);
+    }
+    .nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+    .nav-item.active .nav-icon { opacity: 1; }
+    .nav-badge { margin-left: auto; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 10px; background: rgba(0,229,160,0.12); color: var(--green); }
+
+    .main { padding: 28px 32px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+    .page-header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+    .page-header p { font-size: 13px; color: var(--text-2); margin-top: 4px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px;
+      border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer;
+      border: none; font-family: var(--font); transition: all 0.2s;
+    }
+    .btn-primary { background: var(--green); color: #08090f; }
+    .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-secondary { background: var(--bg-card); color: var(--text-2); border: 1px solid var(--border-lit); }
+    .btn-secondary:hover { background: #1a1d2a; color: var(--text-1); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px; transition: border-color 0.2s;
+    }
+    .card:hover { border-color: var(--border-lit); }
+    .card-title { font-size: 14px; font-weight: 600; color: var(--text-1); margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .card-title .icon { width: 20px; height: 20px; }
+
+    /* FORM */
+    .form-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12px; font-weight: 500; color: var(--text-2); }
+    .form-label .unit { color: var(--text-3); font-weight: 400; }
+    .form-input {
+      padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-lit);
+      background: var(--bg-surface); color: var(--text-1); font-size: 15px;
+      font-family: var(--font); transition: border-color 0.2s; outline: none;
+      font-variant-numeric: tabular-nums;
+    }
+    .form-input:focus { border-color: var(--green); }
+    .form-input::placeholder { color: var(--text-3); font-size: 13px; }
+
+    .form-actions {
+      display: flex; gap: 12px; align-items: center;
+      margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);
+    }
+    .save-status {
+      font-size: 12px; color: var(--green); display: flex; align-items: center; gap: 6px;
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .save-status.show { opacity: 1; }
+
+    /* METRIC CARDS */
+    .metrics-row {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    }
+    .metric-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px; position: relative; overflow: hidden;
+    }
+    .metric-card::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      opacity: 0.6;
+    }
+    .metric-card.mc-cyan::after { background: var(--cyan); }
+    .metric-card.mc-green::after { background: var(--green); }
+    .metric-card.mc-violet::after { background: var(--violet); }
+    .metric-card.mc-gold::after { background: var(--gold); }
+    .metric-label { font-size: 11px; color: var(--text-3); font-weight: 500; text-transform: uppercase; margin-bottom: 8px; }
+    .metric-value { font-size: 28px; font-weight: 700; line-height: 1; }
+    .metric-unit { font-size: 14px; font-weight: 500; color: var(--text-2); margin-left: 3px; }
+    .metric-trend { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 11px; font-weight: 500; }
+    .trend-up { color: var(--green); }
+    .trend-down { color: var(--rose); }
+    .trend-neutral { color: var(--text-3); }
+
+    /* CHART */
+    .chart-wrap {
+      position: relative; width: 100%; height: 200px;
+      margin-top: 8px;
+    }
+    .chart-wrap svg { width: 100%; height: 100%; overflow: visible; }
+    .chart-axis text { fill: var(--text-3); font-size: 10px; font-family: var(--font); }
+    .chart-axis line { stroke: var(--border); }
+
+    /* TABLE */
+    .data-table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }
+    .data-table th {
+      text-align: left; padding: 10px 14px; font-weight: 500;
+      color: var(--text-3); border-bottom: 1px solid var(--border);
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-2); }
+    .data-table tr:hover td { background: var(--bg-surface); }
+    .data-table .num { font-variant-numeric: tabular-nums; text-align: right; }
+    .data-table .date-col { color: var(--text-1); font-weight: 500; }
+
+    .empty-state {
+      text-align: center; padding: 40px 20px; color: var(--text-3);
+    }
+    .empty-state .emoji { font-size: 40px; margin-bottom: 12px; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+
+    @media (max-width: 900px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .form-grid { grid-template-columns: 1fr 1fr; }
+      .metrics-row { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a href="index.html" class="topbar-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 16 16" width="16" height="16" fill="none"><path d="M2 12L2 4L6 8L10 4L10 12" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <span>音可科技</span>
+    </a>
+    <span class="topbar-title">运营控制面板</span>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-status"><div class="status-dot"></div>数据录入</div>
+    <div class="topbar-time" id="clockEl">--:--:--</div>
+    <div class="topbar-avatar">YK</div>
+  </header>
+
+  <aside class="sidebar">
+    <span class="sidebar-section">总览</span>
+    <a href="index.html" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".9"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".9"/></svg>
+      运营总览
+    </a>
+    <a href="stats.html" class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 14L5 8l3 4 3-6 3 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      数据录入
+      <span class="nav-badge">新</span>
+    </a>
+    <a href="ai.html" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="var(--cyan)" stroke-width="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="var(--cyan)" stroke-width="1.5" stroke-linecap="round"/></svg>
+      AI 营销策划
+    </a>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1>每日数据录入</h1>
+        <p>从抖音创作者后台复制数据，粘贴到这里 · 自动画趋势图</p>
+      </div>
+    </div>
+
+    <!-- 输入表单 -->
+    <div class="card" style="border-color:rgba(0,229,160,0.2);">
+      <div class="card-title">
+        <svg class="icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="var(--green)" stroke-width="1.5"/><path d="M5 7h6M5 10h4" stroke="var(--green)" stroke-width="1.2" stroke-linecap="round"/></svg>
+        今日数据 · <span id="formDate" style="color:var(--green);">--</span>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">总播放量 <span class="unit">(次)</span></label>
+          <input class="form-input" id="fTotalPlays" type="number" placeholder="例如 128400">
+        </div>
+        <div class="form-group">
+          <label class="form-label">今日新增播放 <span class="unit">(次)</span></label>
+          <input class="form-input" id="fNewPlays" type="number" placeholder="例如 12400">
+        </div>
+        <div class="form-group">
+          <label class="form-label">总粉丝数 <span class="unit">(人)</span></label>
+          <input class="form-input" id="fTotalFollowers" type="number" placeholder="例如 12400">
+        </div>
+        <div class="form-group">
+          <label class="form-label">今日新增粉丝 <span class="unit">(人)</span></label>
+          <input class="form-input" id="fNewFollowers" type="number" placeholder="例如 328">
+        </div>
+        <div class="form-group">
+          <label class="form-label">总获赞数 <span class="unit">(个)</span></label>
+          <input class="form-input" id="fTotalLikes" type="number" placeholder="例如 86000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">今日新增点赞 <span class="unit">(个)</span></label>
+          <input class="form-input" id="fNewLikes" type="number" placeholder="例如 2400">
+        </div>
+        <div class="form-group">
+          <label class="form-label">评论数 <span class="unit">(条)</span></label>
+          <input class="form-input" id="fComments" type="number" placeholder="例如 340">
+        </div>
+        <div class="form-group">
+          <label class="form-label">分享数 <span class="unit">(次)</span></label>
+          <input class="form-input" id="fShares" type="number" placeholder="例如 128">
+        </div>
+        <div class="form-group">
+          <label class="form-label">互动率 <span class="unit">(%)</span></label>
+          <input class="form-input" id="fEngagement" type="number" step="0.1" placeholder="例如 6.8">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveStats()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M5 8l2 2 4-4M3 13h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          保存今日数据
+        </button>
+        <span class="save-status" id="saveStatus">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          保存成功
+        </span>
+      </div>
+    </div>
+
+    <!-- 指标卡片 -->
+    <div class="metrics-row" id="metricCards">
+      <div class="metric-card mc-cyan">
+        <div class="metric-label">今日新增播放</div>
+        <div class="metric-value">--<span class="metric-unit">次</span></div>
+        <div class="metric-trend trend-neutral">等待录入</div>
+      </div>
+      <div class="metric-card mc-green">
+        <div class="metric-label">今日新增粉丝</div>
+        <div class="metric-value">--<span class="metric-unit">人</span></div>
+        <div class="metric-trend trend-neutral">等待录入</div>
+      </div>
+      <div class="metric-card mc-violet">
+        <div class="metric-label">互动率</div>
+        <div class="metric-value">--<span class="metric-unit">%</span></div>
+        <div class="metric-trend trend-neutral">等待录入</div>
+      </div>
+      <div class="metric-card mc-gold">
+        <div class="metric-label">数据天数</div>
+        <div class="metric-value">0<span class="metric-unit">天</span></div>
+        <div class="metric-trend trend-neutral">累计记录</div>
+      </div>
+    </div>
+
+    <!-- 趋势图 -->
+    <div class="card">
+      <div class="card-title">
+        <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M2 12L5 7l3 3 3-5 4 3" stroke="var(--cyan)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        最近 7 天趋势
+      </div>
+      <div class="chart-wrap" id="chart7"></div>
+      <div style="display:flex;gap:24px;justify-content:center;margin-top:8px;font-size:11px;color:var(--text-3)">
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--cyan);border-radius:2px;margin-right:4px;vertical-align:middle;"></span>播放量</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:4px;vertical-align:middle;"></span>新增粉丝</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--violet);border-radius:2px;margin-right:4px;vertical-align:middle;"></span>点赞数</span>
+      </div>
+    </div>
+
+    <!-- 历史表格 -->
+    <div class="card">
+      <div class="card-title">
+        <svg class="icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="var(--text-2)" stroke-width="1.5"/><path d="M8 4v4l3 2" stroke="var(--text-2)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        历史数据记录
+      </div>
+      <div id="historyTable">
+        <div class="empty-state">
+          <div class="emoji">📋</div>
+          <p>还没有数据，先填写上方表单录入第一条吧</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const API = '/api/stats';
+
+// 时钟
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clockEl').textContent =
+    String(now.getHours()).padStart(2,'0')+':'+
+    String(now.getMinutes()).padStart(2,'0')+':'+
+    String(now.getSeconds()).padStart(2,'0');
+}
+updateClock(); setInterval(updateClock, 1000);
+
+// 今日日期
+const today = new Date().toISOString().slice(0, 10);
+document.getElementById('formDate').textContent = today;
+
+// 加载已有数据
+async function loadToday() {
+  try {
+    const res = await fetch(API+'/today');
+    const json = await res.json();
+    if (json.data) {
+      const d = json.data;
+      document.getElementById('fTotalPlays').value = d.total_plays || '';
+      document.getElementById('fNewPlays').value = d.new_plays || '';
+      document.getElementById('fTotalFollowers').value = d.total_followers || '';
+      document.getElementById('fNewFollowers').value = d.new_followers || '';
+      document.getElementById('fTotalLikes').value = d.total_likes || '';
+      document.getElementById('fNewLikes').value = d.new_likes || '';
+      document.getElementById('fComments').value = d.comments || '';
+      document.getElementById('fShares').value = d.shares || '';
+      document.getElementById('fEngagement').value = d.engagement_rate || '';
+    }
+  } catch(e) {}
+}
+
+// 保存
+async function saveStats() {
+  const body = {
+    total_plays: document.getElementById('fTotalPlays').value,
+    new_plays: document.getElementById('fNewPlays').value,
+    total_followers: document.getElementById('fTotalFollowers').value,
+    new_followers: document.getElementById('fNewFollowers').value,
+    total_likes: document.getElementById('fTotalLikes').value,
+    new_likes: document.getElementById('fNewLikes').value,
+    comments: document.getElementById('fComments').value,
+    shares: document.getElementById('fShares').value,
+    engagement_rate: document.getElementById('fEngagement').value
+  };
+  try {
+    const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    const json = await res.json();
+    const statusEl = document.getElementById('saveStatus');
+    statusEl.classList.add('show');
+    setTimeout(() => statusEl.classList.remove('show'), 2000);
+    loadAll();
+  } catch(e) { alert('保存失败: '+e.message); }
+}
+
+// 加载全部数据
+async function loadAll() {
+  try {
+    const res = await fetch(API+'?days=30');
+    const json = await res.json();
+    const data = json.data || [];
+    updateMetricCards(data);
+    drawChart('chart7', data.slice(-7), 7);
+    renderTable(data);
+  } catch(e) { console.error(e); }
+}
+
+// 更新指标卡片
+function updateMetricCards(data) {
+  const cards = document.getElementById('metricCards').children;
+  if (data.length === 0) return;
+
+  const latest = data[data.length-1];
+  const prev = data.length > 1 ? data[data.length-2] : null;
+
+  const fmtNum = (n) => n ? parseInt(n).toLocaleString() : '--';
+  const growth = (curr, prevVal, unit) => {
+    if (!prevVal || prevVal === 0) return `<span class="trend-neutral">等待录入</span>`;
+    const g = Math.round((curr - prevVal) / prevVal * 100);
+    const cls = g >= 0 ? 'trend-up' : 'trend-down';
+    const arrow = g >= 0 ? '↑' : '↓';
+    return `<span class="${cls}">${arrow} ${g>=0?'+':''}${g}${unit} 昨日</span>`;
+  };
+
+  const h = (cards[0].querySelector('.metric-value')); h.innerHTML = fmtNum(latest.new_plays || latest.total_plays) + '<span class="metric-unit">次</span>';
+  cards[0].querySelector('.metric-trend').innerHTML = prev ? growth(latest.new_plays||0, prev.new_plays||0, '%') : '<span class="trend-neutral">首次录入</span>';
+
+  cards[1].querySelector('.metric-value').innerHTML = fmtNum(latest.new_followers) + '<span class="metric-unit">人</span>';
+  cards[1].querySelector('.metric-trend').innerHTML = prev ? growth(latest.new_followers||0, prev.new_followers||0, '%') : '<span class="trend-neutral">首次录入</span>';
+
+  cards[2].querySelector('.metric-value').innerHTML = (latest.engagement_rate || '--') + '<span class="metric-unit">%</span>';
+  cards[2].querySelector('.metric-trend').innerHTML = '<span class="trend-neutral">行业均值 3.2%</span>';
+
+  cards[3].querySelector('.metric-value').innerHTML = data.length + '<span class="metric-unit">天</span>';
+  cards[3].querySelector('.metric-trend').innerHTML = '<span class="trend-neutral">累计记录</span>';
+}
+
+// 画趋势图
+function drawChart(id, data, days) {
+  const wrap = document.getElementById(id);
+  if (!wrap || data.length < 1) return;
+
+  const W = wrap.clientWidth || 600;
+  const H = 200;
+  const pad = { top: 20, right: 20, bottom: 30, left: 60 };
+  const innerW = W - pad.left - pad.right;
+  const innerH = H - pad.top - pad.bottom;
+
+  const allPlays = data.map(d => d.new_plays || d.total_plays || 0);
+  const allFollowers = data.map(d => d.new_followers || 0);
+  const allLikes = data.map(d => d.new_likes || 0);
+
+  const allVals = [...allPlays, ...allFollowers, ...allLikes];
+  const maxVal = Math.max(...allVals, 1);
+  const minVal = Math.min(...allVals);
+
+  const yRange = maxVal - minVal || 1;
+  const y = (v) => pad.top + innerH - ((v - minVal) / yRange * innerH);
+  const x = (i) => pad.left + (i / Math.max(data.length-1, 1)) * innerW;
+
+  const mkPath = (arr, color) => {
+    let d = `M${x(0)},${y(arr[0])}`;
+    for (let i = 1; i < arr.length; i++) d += ` L${x(i)},${y(arr[i])}`;
+    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  };
+
+  const mkArea = (arr, color) => {
+    let d = `M${x(0)},${pad.top + innerH}`;
+    for (let i = 0; i < arr.length; i++) d += ` L${x(i)},${y(arr[i])}`;
+    d += ` L${x(arr.length-1)},${pad.top + innerH} Z`;
+    return d;
+  };
+
+  // Y axis labels
+  let yAxisLabels = '';
+  for (let i = 0; i <= 4; i++) {
+    const val = minVal + (yRange * i / 4);
+    const yPos = y(val);
+    yAxisLabels += `<text x="${pad.left - 8}" y="${yPos + 4}" text-anchor="end">${val >= 10000 ? (val/10000).toFixed(1)+'万' : val.toLocaleString()}</text>`;
+    yAxisLabels += `<line x1="${pad.left}" y1="${yPos}" x2="${pad.left + innerW}" y2="${yPos}" stroke="rgba(255,255,255,0.04)"/>`;
+  }
+
+  // X axis labels
+  let xAxisLabels = '';
+  data.forEach((d, i) => {
+    if (i % Math.ceil(data.length / 7) === 0 || i === data.length-1) {
+      const label = (d.date || '').slice(5); // MM-DD
+      xAxisLabels += `<text x="${x(i)}" y="${pad.top + innerH + 18}" text-anchor="middle">${label}</text>`;
+    }
+  });
+
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+    ${yAxisLabels}
+    ${xAxisLabels}
+    <!-- 播放量区域 -->
+    <path d="${mkArea(allPlays, '#00d4ff')}" fill="url(#gPlays)" opacity="0.15"/>
+    <!-- 粉丝区域 -->
+    <path d="${mkArea(allFollowers, '#00e5a0')}" fill="url(#gFollow)" opacity="0.1"/>
+    ${mkPath(allPlays, '#00d4ff')}
+    ${mkPath(allFollowers, '#00e5a0')}
+    ${mkPath(allLikes, '#a78bfa')}
+    <defs>
+      <linearGradient id="gPlays" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00d4ff" stop-opacity="1"/><stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/></linearGradient>
+      <linearGradient id="gFollow" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00e5a0" stop-opacity="1"/><stop offset="100%" stop-color="#00e5a0" stop-opacity="0"/></linearGradient>
+    </defs>
+  </svg>`;
+}
+
+// 历史表格
+function renderTable(data) {
+  const container = document.getElementById('historyTable');
+  if (data.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="emoji">📋</div><p>还没有数据，先填写上方表单录入第一条吧</p></div>';
+    return;
+  }
+  const rows = data.reverse().map(d => `
+    <tr>
+      <td class="date-col">${d.date}</td>
+      <td class="num">${parseInt(d.new_plays||d.total_plays||0).toLocaleString()}</td>
+      <td class="num">${parseInt(d.new_followers||0).toLocaleString()}</td>
+      <td class="num">${parseInt(d.new_likes||0).toLocaleString()}</td>
+      <td class="num">${parseInt(d.comments||0).toLocaleString()}</td>
+      <td class="num">${parseInt(d.shares||0).toLocaleString()}</td>
+      <td class="num" style="color:var(--green);font-weight:600;">${d.engagement_rate||'--'}%</td>
+    </tr>
+  `).join('');
+
+  container.innerHTML = `<table class="data-table">
+    <thead><tr>
+      <th>日期</th><th>新增播放</th><th>新增粉丝</th><th>新增点赞</th><th>评论</th><th>分享</th><th>互动率</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// 页面加载
+loadToday();
+loadAll();
+</script>
+</body>
+</html>

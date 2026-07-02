@@ -12,6 +12,7 @@ const publishTasksRouter = require('./routes/publish-tasks');
 const contentPlansRouter = require('./routes/content-plans');
 const logsAutomationsRouter = require('./routes/logs-automations');
 const aiRouter = require('./routes/ai');
+const statsRouter = require('./routes/stats');
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/publish-tasks', publishTasksRouter);
 app.use('/api/content-plans', contentPlansRouter);
 app.use('/api', logsAutomationsRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/stats', statsRouter);
 
 // 仪表盘聚合接口
 app.get('/api/dashboard', (req, res) => {

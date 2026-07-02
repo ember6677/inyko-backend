@@ -1652,6 +1652,64 @@ function animateCounters() {
 }
 setTimeout(animateCounters, 300);
 
+// ── LOAD REAL DATA ──
+async function loadRealStats() {
+  try {
+    const res = await fetch('/api/stats/latest');
+    const json = await res.json();
+    if (!json.data) return;
+
+    const d = json.data;
+
+    // 更新指标卡片
+    const cards = document.querySelectorAll('.metric-card .metric-value');
+    if (cards[0]) cards[0].innerHTML = (parseInt(d.new_plays || d.total_plays) || 0).toLocaleString() + '<span class="metric-unit">次</span>';
+    if (cards[1]) cards[1].innerHTML = (parseInt(d.new_followers) || 0).toLocaleString() + '<span class="metric-unit">人</span>';
+    if (cards[3]) cards[3].innerHTML = (d.engagement_rate || '6.8') + '<span class="metric-unit">%</span>';
+
+    // 更新趋势
+    const trends = document.querySelectorAll('.metric-card .metric-trend');
+    if (trends[0]) trends[0].innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 9l4-6 4 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${d.play_growth || '--'} 昨日`;
+    if (trends[1]) trends[1].innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 9l4-6 4 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${d.follower_growth || '--'} 昨日`;
+
+    // 更新趋势 class
+    if (d.play_growth && d.play_growth.startsWith('-')) trends[0].classList.add('trend-down');
+    else trends[0].classList.add('trend-up');
+    if (d.follower_growth && d.follower_growth.startsWith('-')) trends[1].classList.add('trend-down');
+    else trends[1].classList.add('trend-up');
+
+    // 加载历史数据更新走势图
+    const histRes = await fetch('/api/stats?days=7');
+    const histJson = await histRes.json();
+    const histData = histJson.data || [];
+    if (histData.length > 0) {
+      const plays = histData.map(d => d.new_plays || d.total_plays || 0);
+      const followers = histData.map(d => d.new_followers || 0);
+      const likes = histData.map(d => d.new_likes || 0);
+      const engagement = histData.map(d => (d.engagement_rate || 3) * 10); // scaled
+      const pending = [7, 5, 8, 4, 6, 7, 9]; // 保持 mock pending
+
+      // 以 max 为准缩放
+      const norm = (arr) => {
+        const max = Math.max(...arr, 1);
+        const min = Math.min(...arr);
+        const range = max - min || 1;
+        return arr.map(v => min + (v - min) / range * max * 0.5 + max * 0.3);
+      };
+      const normPlays = norm(plays);
+      const normFollowers = norm(followers);
+
+      if (plays.length > 0) drawSparkline('spark1', plays, '#00d4ff');
+      if (followers.length > 0) drawSparkline('spark2', followers, '#00e5a0');
+      drawSparkline('spark3', rnd(12, 12, 30), '#a78bfa');
+      if (engagement.length > 0) drawSparkline('spark4', engagement, '#e8c97a');
+      drawSparkline('spark5', rnd(12, 3, 12), '#fb7185');
+    }
+  } catch(e) {
+    console.log('数据加载中...', e.message);
+  }
+}
+
 // ── SPARKLINES ──
 function drawSparkline(id, data, color) {
   const wrap = document.getElementById(id);
@@ -1683,12 +1741,15 @@ function drawSparkline(id, data, color) {
 }
 
 const rnd = (n, min, max) => Array.from({length:n}, (_,i) => min + Math.random()*(max-min));
+// 先用 mock 数据显示，真实数据由 loadRealStats() 覆盖
 setTimeout(() => {
   drawSparkline('spark1', rnd(12, 80000, 160000), '#00d4ff');
   drawSparkline('spark2', rnd(12, 800, 1800), '#00e5a0');
   drawSparkline('spark3', rnd(12, 12, 30), '#a78bfa');
   drawSparkline('spark4', rnd(12, 4, 9), '#e8c97a');
   drawSparkline('spark5', rnd(12, 3, 12), '#fb7185');
+  // 然后加载真实数据覆盖
+  loadRealStats();
 }, 200);
 
 // ── CALENDAR ──
