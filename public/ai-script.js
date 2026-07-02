@@ -6,7 +6,48 @@
 (function() {
 'use strict';
 
+// 防止 SPA 重复初始化
+if (window.__aiScriptInit) return;
+window.__aiScriptInit = true;
+
 const API_BASE = window.location.origin;
+
+// ======================== INIT FORM ========================
+function initAIForm() {
+  try {
+    var saved = localStorage.getItem('inyko_ai_brand');
+    if (saved) {
+      var cfg = JSON.parse(saved);
+      if (cfg.brand) {
+        var el = document.getElementById('inputBrand');
+        if (el) el.value = cfg.brand;
+      }
+      if (cfg.product) {
+        var el = document.getElementById('inputProduct');
+        if (el) el.value = cfg.product;
+      }
+      if (cfg.audience) {
+        var el = document.getElementById('inputAudience');
+        if (el) el.value = cfg.audience;
+      }
+    }
+  } catch(e) {}
+}
+window.initAIForm = initAIForm;
+
+// Auto-save on input change
+['inputBrand', 'inputProduct', 'inputAudience'].forEach(function(id) {
+  var input = document.getElementById(id);
+  if (input) {
+    input.addEventListener('input', function() {
+      localStorage.setItem('inyko_ai_brand', JSON.stringify({
+        brand: getVal('inputBrand'),
+        product: getVal('inputProduct'),
+        audience: getVal('inputAudience')
+      }));
+    });
+  }
+});
 
 // ======================== TOAST ========================
 function toast(msg, type) {
@@ -553,32 +594,6 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// ======================== INIT ========================
-// Load saved brand config from localStorage
-(function() {
-  try {
-    var saved = localStorage.getItem('inyko_ai_brand');
-    if (saved) {
-      var cfg = JSON.parse(saved);
-      if (cfg.brand) document.getElementById('inputBrand').value = cfg.brand;
-      if (cfg.product) document.getElementById('inputProduct').value = cfg.product;
-      if (cfg.audience) document.getElementById('inputAudience').value = cfg.audience;
-    }
-  } catch(e) {}
-
-  // Auto-save on input change
-  ['inputBrand', 'inputProduct', 'inputAudience'].forEach(function(id) {
-    var input = document.getElementById(id);
-    if (input) {
-      input.addEventListener('input', function() {
-        localStorage.setItem('inyko_ai_brand', JSON.stringify({
-          brand: getVal('inputBrand'),
-          product: getVal('inputProduct'),
-          audience: getVal('inputAudience')
-        }));
-      });
-    }
-  });
 })();
 
 })();
