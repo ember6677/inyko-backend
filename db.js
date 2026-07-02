@@ -2,7 +2,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const DB_DIR = process.env.DB_PATH || path.join(__dirname, 'data');
+// Vercel 环境使用 /tmp（唯一可写目录），本地开发使用 data/ 目录
+const IS_VERCEL = !!process.env.VERCEL;
+const DB_DIR = process.env.DB_PATH || (IS_VERCEL ? '/tmp/data' : path.join(__dirname, 'data'));
 if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
 
 // 内存缓存
